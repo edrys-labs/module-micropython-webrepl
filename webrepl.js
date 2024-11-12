@@ -8,8 +8,26 @@ var get_file_name = null
 var get_file_data = null
 
 function calculate_size(win) {
-  var cols = Math.max(80, Math.min(150, (win.innerWidth - 280) / 7)) | 0
-  var rows = Math.max(24, Math.min(80, (win.innerHeight - 180) / 12)) | 0
+  const header = document.getElementById('file-boxes')
+
+  const background = document.getElementById('term')
+
+  var cols = (window.innerWidth / 7) | 0
+  var rows = ((win.innerHeight - header.offsetHeight - 60) / 52) | 0
+
+  background.style.width = '100%'
+  background.style.height = win.innerHeight - header.offsetHeight - 60 + 'px'
+
+  console.log(
+    'cols',
+    cols,
+    'rows',
+    rows,
+    'header',
+    header.offsetHeight,
+    'win.innerHeight',
+    win.innerHeight
+  )
   return [cols, rows]
 }
 
