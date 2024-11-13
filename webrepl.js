@@ -18,16 +18,6 @@ function calculate_size(win) {
   background.style.width = '100%'
   background.style.height = win.innerHeight - header.offsetHeight - 60 + 'px'
 
-  console.log(
-    'cols',
-    cols,
-    'rows',
-    rows,
-    'header',
-    header.offsetHeight,
-    'win.innerHeight',
-    win.innerHeight
-  )
   return [cols, rows]
 }
 
@@ -332,9 +322,16 @@ function handle_put_file_select(evt) {
   var reader = new FileReader()
   reader.onload = function (e) {
     put_file_data = new Uint8Array(e.target.result)
-    document.getElementById('put-file-list').innerHTML =
+    document.getElementById('file-status').innerHTML =
       '' + escape(put_file_name) + ' - ' + put_file_data.length + ' bytes'
-    document.getElementById('put-file-button').disabled = false
+
+    const put_file_button = document.getElementById('put-file-button')
+
+    if (put_file_button) {
+      put_file_button.disabled = false
+    }
+
+    put_file()
   }
   reader.readAsArrayBuffer(f)
 }

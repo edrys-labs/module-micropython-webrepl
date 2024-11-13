@@ -31,7 +31,8 @@
         display: inline;
       }
 
-      input[type='text'] {
+      input[type='text'],
+      input[type='url'] {
         width: calc(100% - 20px);
       }
 
@@ -70,7 +71,7 @@
       <form class="file-box">
         <strong>WebSocket Connection</strong>
 
-        <input type="text" name="webrepl_url" id="url" value="" />
+        <input type="url" name="webrepl_url" id="url" value="" />
         <input
           type="submit"
           id="button"
@@ -105,9 +106,9 @@
           onclick="get_file(); return false;"
         />
       </div>
-      <div class="file-box" id="file-status">
+      <div class="file-box">
         <strong>File status</strong>
-        <span style="color: #707070">(file operation status)</span>
+        <span id="file-status">(file operation status)</span>
       </div>
     </div>
     <div id="term"></div>

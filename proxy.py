@@ -14,23 +14,24 @@ async def forward(ws_from, ws_to, name="unknown"):
                 logger.debug(f"{name} forwarding binary message of length {len(message)}")
                 if len(message) >= 2:
                     logger.debug(f"First two bytes: {message[:2].hex()}")
-                    
-                # Add small delay after binary messages to prevent buffer overrun
                 await ws_to.send(message)
-                await asyncio.sleep(0.01)  # 10ms delay
+                await asyncio.sleep(0.01)  # Small delay after binary messages
             else:
                 logger.debug(f"{name} forwarding text message: {message[:100]}")
                 await ws_to.send(message)
     except websockets.ConnectionClosed as e:
         logger.info(f"Connection closed by {name}: {e.code} {e.reason}")
+        # Ensure the other websocket is also closed
+        if not ws_to.closed:
+            await ws_to.close(1000, "Other end closed")
     except Exception as e:
         logger.error(f"Error in {name} forward: {str(e)}")
-        # Don't re-raise the exception to keep the other direction running
+        if not ws_to.closed:
+            await ws_to.close(1001, f"Error in forwarding: {str(e)}")
 
 async def proxy(websocket, path):
-    target_uri = None
+    target_ws = None
     try:
-        # Remove leading slash and parse target URI
         target_uri = path.lstrip('/')
         
         if not target_uri.startswith('ws://'):
@@ -49,41 +50,49 @@ async def proxy(websocket, path):
 
         logger.info(f"New connection from {websocket.remote_address} to {target_uri}")
 
-        # Configure WebSocket connection with more lenient timeouts
         async with websockets.connect(
             target_uri,
             subprotocols=['binary', 'base64'],
             max_size=None,
-            ping_interval=None,  # Disable automatic ping
-            ping_timeout=None,   # Disable ping timeout
-            close_timeout=10,    # More time for clean shutdown
-            max_queue=2**16      # Larger message queue
+            ping_interval=None,
+            ping_timeout=None,
+            close_timeout=10,
+            max_queue=2**16
         ) as target_ws:
-            # Create bidirectional forwarding tasks
+            # Create forwarding tasks
             forward_tasks = [
                 asyncio.create_task(forward(websocket, target_ws, f"client->{target_uri}")),
                 asyncio.create_task(forward(target_ws, websocket, f"{target_uri}->client"))
             ]
 
-            # Wait for both tasks to complete (or one to fail)
-            try:
-                await asyncio.gather(*forward_tasks)
-            except Exception as e:
-                logger.error(f"Error in forwarding: {str(e)}")
-            finally:
-                # Ensure all tasks are cleaned up
-                for task in forward_tasks:
-                    if not task.done():
-                        task.cancel()
-                        try:
-                            await task
-                        except asyncio.CancelledError:
-                            pass
+            # Wait for any task to complete (which will happen when either connection closes)
+            done, pending = await asyncio.wait(
+                forward_tasks,
+                return_when=asyncio.FIRST_COMPLETED
+            )
+
+            # Cancel pending tasks
+            for task in pending:
+                task.cancel()
+
+            # Wait for cancellation to complete
+            if pending:
+                await asyncio.wait(pending)
+
+            # Ensure both connections are closed
+            if not websocket.closed:
+                await websocket.close(1000, "Target connection closed")
+            if not target_ws.closed:
+                await target_ws.close(1000, "Client connection closed")
 
     except websockets.exceptions.WebSocketException as e:
-        logger.error(f"WebSocket error for {target_uri}: {str(e)}")
+        logger.error(f"WebSocket error: {str(e)}")
+        if not websocket.closed:
+            await websocket.close(1011, f"WebSocket error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
+        if not websocket.closed:
+            await websocket.close(1011, f"Unexpected error: {str(e)}")
     finally:
         logger.info(f"Proxy connection closed for {websocket.remote_address}")
 
