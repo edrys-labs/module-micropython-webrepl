@@ -2,7 +2,7 @@
 <html>
   <head>
     <title>MicroPython WebREPL</title>
-    <script src="https://edrys-labs.github.io/module/edrys.js"></script>
+    <script src="http://localhost:6999/module/edrys.js"></script>
 
     <script
       defer
@@ -120,5 +120,129 @@
     </div>
   </body>
 
+  <script>
+    const urlInput = document.getElementById('url')
+    const fileStatus = document.getElementById('file-status')
+    const connectionButton = document.getElementById('button')
+
+    Edrys.onMessage((message) => {
+      if (message.from === Edrys.liveUser.name) {
+        return
+      }
+
+      if (message.subject === 'write' && Edrys.role !== 'station') {
+        term.write(message.body)
+      }
+
+      if (message.subject === 'data') {
+        window.termOnData(message.body)
+      }
+
+      if (message.subject === 'put' && Edrys.role === 'station') {
+        console.log('Put file', message.body)
+        ws.send(message.body)
+      }
+
+      if (message.subject === 'get' && Edrys.role === 'station') {
+        console.log('Get file', message.body)
+        ws.send(message.body)
+      }
+    })
+
+    Edrys.onReady(() => {
+      console.warn('Ready', Edrys)
+      if (Edrys.role === 'student') {
+        urlInput.disabled = true
+      }
+
+      if (Edrys.role !== 'station') {
+        const clickEvent = button_click
+        button_click = () => {
+          const connect = Edrys.getState('connect', 'Value')
+          Edrys.getState('connect', 'Value', !connect)
+
+          clickEvent()
+        }
+      }
+
+      Edrys.transactState(() => {
+        if (Edrys.getState('url', 'Value') == undefined) {
+          Edrys.getState('url', 'Value', 'ws://')
+        }
+
+        if (Edrys.getState('file_status', 'Value') == undefined) {
+          Edrys.getState('file_status', 'Value', fileStatus.innerHTML)
+        }
+
+        if (Edrys.getState('connect', 'Value') == undefined) {
+          Edrys.getState(
+            'connect',
+            'Value',
+            connectionButton.value === 'Connect'
+          )
+        }
+
+        urlInput.value = Edrys.getState('url', 'Value')
+
+        urlInput.oninput = (e) => {
+          Edrys.getState('url', 'Value', e.target.value)
+        }
+
+        fileStatus.innerHTML = Edrys.getState('file_status', 'Value')
+        const observer = new MutationObserver((mutationsList) => {
+          for (const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+              const state = Edrys.getState('file_status', 'Value')
+              if (state !== fileStatus.innerHTML) {
+                Edrys.getState('file_status', 'Value', fileStatus.innerHTML)
+              }
+            }
+          }
+        })
+
+        observer.observe(fileStatus, { childList: true, subtree: true })
+
+        connectionButton.value =
+          Edrys.getState('connect', 'Value') === true ? 'Connect' : 'Disconnect'
+        const observer2 = new MutationObserver((mutationsList) => {
+          for (const mutation of mutationsList) {
+            if (mutation.attributeName === 'value') {
+              const state = Edrys.getState('connect', 'Value')
+              if (state !== (connectionButton.value === 'Connect')) {
+                Edrys.getState(
+                  'connect',
+                  'Value',
+                  connectionButton.value === 'Connect'
+                )
+              }
+            }
+          }
+        })
+
+        // Start observing the button for attribute changes
+        observer2.observe(connectionButton, { attributes: true })
+      })
+    })
+
+    Edrys.onUpdate(() => {
+      console.warn('Update')
+
+      urlInput.value = Edrys.liveRoom.url || ''
+      fileStatus.innerHTML = Edrys.liveRoom.file_status || ''
+
+      const connect = Edrys.liveRoom.connect === true ? 'Connect' : 'Disconnect'
+      if (Edrys.role === 'station') {
+        console.log('Role is station', connectionButton.value, connect)
+        if (connectionButton.value !== connect) {
+          console.log('Connecting')
+          button_click()
+        }
+      } else {
+        connectionButton.value = connect
+      }
+
+      console.dir(Edrys.liveRoom)
+    })
+  </script>
   <script src="webrepl.js"></script>
 </html>

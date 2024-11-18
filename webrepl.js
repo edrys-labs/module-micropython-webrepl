@@ -1,5 +1,5 @@
-var term
-var ws
+window.term
+window.ws
 var connected = false
 var binary_state = 0
 var put_file_name = null
@@ -62,11 +62,14 @@ function show_https_warning() {
 
 function button_click() {
   if (connected) {
-    ws.close()
+    if (Edrys.role === 'station') {
+      ws.close()
+    }
   } else {
     document.getElementById('url').disabled = true
     document.getElementById('button').value = 'Disconnect'
     connected = true
+
     connect(document.getElementById('url').value)
   }
 }
@@ -86,15 +89,40 @@ function connect(url) {
     hostport = ''
   }
 
-  window.location.hash = hostport
-  ws = new WebSocket(url)
-  ws.binaryType = 'arraybuffer'
-  ws.onopen = function () {
+  if (Edrys.role !== 'station') {
+    window.termOnData = function (data) {
+      Edrys.sendMessage('data', data)
+    }
+
     term.removeAllListeners('data')
     term.on('data', function (data) {
       // Pasted data from clipboard will likely contain
       // LF as EOL chars.
       data = data.replace(/\n/g, '\r')
+
+      Edrys.sendMessage('data', data)
+    })
+
+    term.focus()
+    term.element.focus()
+
+    return
+  }
+
+  window.location.hash = hostport
+  ws = new WebSocket(url)
+  ws.binaryType = 'arraybuffer'
+  ws.onopen = function () {
+    window.termOnData = function (data) {
+      ws.send(data)
+    }
+
+    term.removeAllListeners('data')
+    term.on('data', function (data) {
+      // Pasted data from clipboard will likely contain
+      // LF as EOL chars.
+      data = data.replace(/\n/g, '\r')
+
       ws.send(data)
     })
 
@@ -104,7 +132,9 @@ function connect(url) {
 
     term.focus()
     term.element.focus()
+
     term.write('\x1b[31mWelcome to MicroPython!\x1b[m\r\n')
+    Edrys.sendMessage('write', '\x1b[31mWelcome to MicroPython!\x1b[m\r\n')
 
     ws.onmessage = function (event) {
       if (event.data instanceof ArrayBuffer) {
@@ -199,13 +229,17 @@ function connect(url) {
         }
       }
       term.write(event.data)
+      Edrys.sendMessage('write', event.data)
     }
   }
 
   ws.onclose = function () {
     connected = false
     if (term) {
-      term.write('\x1b[31mDisconnected\x1b[m\r\n')
+      if (Edrys.role === 'station') {
+        term.write('\x1b[31mDisconnected\x1b[m\r\n')
+        Edrys.sendMessage('write', '\x1b[31mDisconnected\x1b[m\r\n')
+      }
     }
     term.off('data')
     prepare_for_connect()
@@ -256,7 +290,12 @@ function put_file() {
   // initiate put
   binary_state = 11
   update_file_status('Sending ' + put_file_name + '...')
-  ws.send(rec)
+
+  if (Edrys.role === 'station') {
+    ws.send(rec)
+  } else {
+    Edrys.sendMessage('put', rec)
+  }
 }
 
 function get_file() {
@@ -295,7 +334,12 @@ function get_file() {
   get_file_name = src_fname
   get_file_data = new Uint8Array(0)
   update_file_status('Getting ' + get_file_name + '...')
-  ws.send(rec)
+
+  if (Edrys.role === 'station') {
+    ws.send(rec)
+  } else {
+    Edrys.sendMessage('get', rec)
+  }
 }
 
 function get_ver() {
