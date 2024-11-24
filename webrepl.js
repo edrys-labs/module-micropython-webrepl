@@ -90,10 +90,6 @@ function connect(url) {
   }
 
   if (Edrys.role !== 'station') {
-    window.termOnData = function (data) {
-      Edrys.sendMessage('data', data)
-    }
-
     term.removeAllListeners('data')
     term.on('data', function (data) {
       // Pasted data from clipboard will likely contain
@@ -212,10 +208,11 @@ function connect(url) {
               update_file_status(
                 'Got ' + get_file_name + ', ' + get_file_data.length + ' bytes'
               )
-              saveAs(
-                new Blob([get_file_data], { type: 'application/octet-stream' }),
-                get_file_name
-              )
+              const blob = new Blob([get_file_data], {
+                type: 'application/octet-stream',
+              })
+              saveAs(blob, get_file_name)
+              Edrys.sendMessage('got_file', { blob, filename: get_file_name })
             } else {
               update_file_status('Failed getting ' + get_file_name)
             }
@@ -291,15 +288,15 @@ function put_file() {
   binary_state = 11
   update_file_status('Sending ' + put_file_name + '...')
 
-  if (Edrys.role === 'station') {
-    ws.send(rec)
-  } else {
-    Edrys.sendMessage('put', rec)
-  }
+  ws.send(rec)
 }
 
-function get_file() {
-  var src_fname = document.getElementById('get_filename').value
+function get_file(filename) {
+  var src_fname = filename || document.getElementById('get_filename').value
+
+  if (Edrys.role !== 'station') {
+    Edrys.sendMessage('get_file', src_fname)
+  }
 
   // WEBREPL_FILE = "<2sBBQLH64s"
   var rec = new Uint8Array(2 + 1 + 1 + 8 + 4 + 2 + 64)
@@ -335,11 +332,7 @@ function get_file() {
   get_file_data = new Uint8Array(0)
   update_file_status('Getting ' + get_file_name + '...')
 
-  if (Edrys.role === 'station') {
-    ws.send(rec)
-  } else {
-    Edrys.sendMessage('get', rec)
-  }
+  ws.send(rec)
 }
 
 function get_ver() {
@@ -353,6 +346,13 @@ function get_ver() {
   // initiate GET_VER
   binary_state = 31
   ws.send(rec)
+}
+
+function mimic_put_file_select(file_name, file_data) {
+  put_file_name = file_name
+  put_file_data = file_data
+
+  put_file()
 }
 
 function handle_put_file_select(evt) {
@@ -375,7 +375,14 @@ function handle_put_file_select(evt) {
       put_file_button.disabled = false
     }
 
-    put_file()
+    if (Edrys.role === 'station') {
+      put_file()
+    } else {
+      Edrys.sendMessage('put_file', {
+        data: put_file_data,
+        filename: put_file_name,
+      })
+    }
   }
   reader.readAsArrayBuffer(f)
 }

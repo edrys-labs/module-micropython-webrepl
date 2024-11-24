@@ -2,7 +2,8 @@
 <html>
   <head>
     <title>MicroPython WebREPL</title>
-    <script src="http://localhost:6999/module/edrys.js"></script>
+
+    <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
     <script
       defer
@@ -126,6 +127,16 @@
     const connectionButton = document.getElementById('button')
 
     Edrys.onMessage((message) => {
+      if (message.subject === 'execute' && Edrys.role === 'station') {
+        console.log('execute', message.body)
+
+        let code = message.body.split('\n')
+
+        for (let i = 0; i < code.length; i++) {
+          window.term.emit('data', code[i] + '\r')
+        }
+      }
+
       if (message.from === Edrys.liveUser.name) {
         return
       }
@@ -134,20 +145,25 @@
         term.write(message.body)
       }
 
-      if (message.subject === 'data') {
+      if (message.subject === 'data' && Edrys.role === 'station') {
         window.termOnData(message.body)
       }
 
-      if (message.subject === 'put' && Edrys.role === 'station') {
+      if (message.subject === 'put_file' && Edrys.role === 'station') {
         console.log('Put file', message.body)
-        ws.send(message.body)
+        mimic_put_file_select(message.body.filename, message.body.data)
       }
 
-      if (message.subject === 'get' && Edrys.role === 'station') {
+      if (message.subject === 'get_file' && Edrys.role === 'station') {
         console.log('Get file', message.body)
-        ws.send(message.body)
+        get_file(message.body)
       }
-    })
+
+      if (message.subject === 'got_file') {
+        //fileStatus.innerHTML = message.body
+        console.warn('Got file', message.body)
+      }
+    }, (promiscuous = true))
 
     Edrys.onReady(() => {
       console.warn('Ready', Edrys)
@@ -163,9 +179,13 @@
 
           clickEvent()
         }
+
+        if (!Edrys.getState('connect', 'Value')) {
+          connect('')
+        }
       }
 
-      Edrys.transactState(() => {
+      Edrys.updateState(() => {
         if (Edrys.getState('url', 'Value') == undefined) {
           Edrys.getState('url', 'Value', 'ws://')
         }
@@ -180,6 +200,8 @@
             'Value',
             connectionButton.value === 'Connect'
           )
+        } else if (Edrys.getState('connect', 'Value') === false) {
+          connect('')
         }
 
         urlInput.value = Edrys.getState('url', 'Value')

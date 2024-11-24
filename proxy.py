@@ -109,6 +109,7 @@ async def main():
         max_queue=2**16
     )
     
+    
     logger.info("Proxy server listening on ws://localhost:8765")
     logger.info("Connect using: ws://localhost:8765/ws://target-host:port")
     
