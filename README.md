@@ -10,10 +10,13 @@ To use this module, you need to have a MicroPython board with WebREPL enabled. Y
 https://edrys-labs.github.io/module-micropython-webrepl/
 ```
 
-You can preset the WebSocket connection with the following station-configuration:
+You can preset the WebSocket connection with the following station-configuration.
+Additionally you can define a topic onto which the module will listen, thus if an external module publishes code under the following topic, then this code will be directly executed.
+This is useful when using an editor with an execute procedure.
 
 ```
 websocket: wss?://...
+execute: topic
 ```
 
 However, in most cases your MicroPython board will **NOT** be able to offer a secure wss connection, that is why you either need to install a browser-plugin at the Station-Browser. Or your run, the included [`proxy.py`](./proxy.py) script on a local machine, which will forward the WebSocket connection to the MicroPython board.

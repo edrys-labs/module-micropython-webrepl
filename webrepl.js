@@ -38,7 +38,7 @@ function calculate_size(win) {
       cursorBlink: false,
     })
     term.open(document.getElementById('term'))
-    show_https_warning()
+    // show_https_warning()
   }
   window.addEventListener('resize', function () {
     var size = calculate_size(self)

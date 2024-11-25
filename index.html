@@ -4,6 +4,11 @@
     <title>MicroPython WebREPL</title>
 
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
+    <meta
+      name="description"
+      content="Allows to connect to a webrepl via a WebSocket.<br/> Form more information, visit: <a href='https://github.com/edrys-labs/module-micropython-webrepl' target='_blank'>https://github.com/edrys-labs/module-micropython-webrepl</a>"
+    />
+    <meta name="show-in" content="station" />
 
     <script
       defer
@@ -125,9 +130,10 @@
     const urlInput = document.getElementById('url')
     const fileStatus = document.getElementById('file-status')
     const connectionButton = document.getElementById('button')
+    var execute = 'execute'
 
     Edrys.onMessage((message) => {
-      if (message.subject === 'execute' && Edrys.role === 'station') {
+      if (message.subject === execute && Edrys.role === 'station') {
         console.log('execute', message.body)
 
         let code = message.body.split('\n')
@@ -166,7 +172,6 @@
     }, (promiscuous = true))
 
     Edrys.onReady(() => {
-      console.warn('Ready', Edrys)
       if (Edrys.role === 'student') {
         urlInput.disabled = true
       }
@@ -185,9 +190,17 @@
         }
       }
 
+      if (Edrys.role === 'station') {
+        execute = Edrys.module.stationConfig.execute || 'execute'
+      }
+
       Edrys.updateState(() => {
         if (Edrys.getState('url', 'Value') == undefined) {
-          Edrys.getState('url', 'Value', drys.module.stationConfig || 'ws://')
+          Edrys.getState(
+            'url',
+            'Value',
+            Edrys.module.stationConfig.websocket || 'ws://'
+          )
         }
 
         if (Edrys.getState('file_status', 'Value') == undefined) {
