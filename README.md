@@ -1,3 +1,41 @@
+# Module MicroPython WebREPL
+
+This is a fork of the official MicroPython WebREPL client from the [WebREPL client for MicroPython](https://github.com/micropython/webrepl), which enables you to integrate the the WebRepl into a Edrys remote laboratory.
+
+The original README.md content is included at the end of this file.
+
+To use this module, you need to have a MicroPython board with WebREPL enabled. You can find the instructions on how to enable WebREPL in the [MicroPython documentation](https://docs.micropython.org/en/latest/esp8266/tutorial/repl.html#webrepl-a-prompt-over-wifi)... and you need to import the following URL into your Edrys modules:
+
+``` html
+https://edrys-labs.github.io/module-micropython-webrepl/
+```
+
+You can preset the WebSocket connection with the following station-configuration:
+
+```
+websocket: wss?://...
+```
+
+However, in most cases your MicroPython board will **NOT** be able to offer a secure wss connection, that is why you either need to install a browser-plugin at the Station-Browser. Or your run, the included [`proxy.py`](./proxy.py) script on a local machine, which will forward the WebSocket connection to the MicroPython board.
+
+The proxy will by default listen for incoming connections at `ws://localhost:8765` by adding a path with your MicroPython websocket connection, all incoming requests will be forwarded to this connection.
+
+``` html
+ws://localhost:8765/ws://192.168.2.197:8266
+```
+
+This way, you can have multiple stations with connections to different MicroPython boards.
+
+Initialize a default configuration with the following station-configuration:
+
+``` yaml
+websocket: ws://localhost:8765/ws://
+```
+
+---
+
+# Original README.md content:
+
 WebREPL client for MicroPython
 ==============================
 
