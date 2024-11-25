@@ -187,7 +187,7 @@
 
       Edrys.updateState(() => {
         if (Edrys.getState('url', 'Value') == undefined) {
-          Edrys.getState('url', 'Value', 'ws://')
+          Edrys.getState('url', 'Value', drys.module.stationConfig || 'ws://')
         }
 
         if (Edrys.getState('file_status', 'Value') == undefined) {
