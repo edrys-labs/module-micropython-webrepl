@@ -9,6 +9,21 @@
       content="Allows to connect to a webrepl via a WebSocket.<br/> Form more information, visit: <a href='https://github.com/edrys-labs/module-micropython-webrepl' target='_blank'>https://github.com/edrys-labs/module-micropython-webrepl</a>"
     />
     <meta name="show-in" content="station" />
+    <meta 
+      name="module-config" 
+      content="{
+        'stationConfig': {
+          'websocket': {
+            'type': string,
+            'hint': 'URL of the WebSocket server',
+          },
+          'execute': {
+            'type': string,
+            'hint': 'Message to listen for (default: execute)',
+          },
+        }
+      }" 
+    />
 
     <script
       defer
