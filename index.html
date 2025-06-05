@@ -41,11 +41,22 @@
         overflow: hidden;
       }
 
-      strong {
-        position: absolute;
-        margin-top: -25px;
-        padding: 0px 7px;
-        background: rgb(1, 59, 78);
+      /* Student-specific layout */
+      body.student-view #term {
+        height: calc(100vh - 120px) !important;
+      }
+
+      body.student-view #url {
+        display: none;
+      }
+
+      body.student-view .file-box:not(.connection-box) {
+        display: none;
+      }
+
+      body.student-view .connection-box {
+        flex: 1 1 100%;
+        text-align: center;
       }
 
       input {
@@ -69,7 +80,6 @@
 
       .file-box {
         margin-bottom: 15px;
-
         flex: 1 1 calc(25% - 20px);
         box-sizing: border-box;
         border: 2px black solid;
@@ -77,10 +87,27 @@
         padding-top: 10px;
       }
 
+      .box-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        background: linear-gradient(135deg, #013b4e, #1a5d78);
+        color: white;
+        border-radius: 4px;
+        font-size: 13px;
+        text-align: center;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin: -5px -5px 10px -5px;
+        border-bottom: 2px solid #001f2b;
+      }
+
       #term {
         display: block;
         min-width: 100%;
         background-color: black;
+        border: 1px solid;
+        overflow-y: auto;
       }
     </style>
 
@@ -89,8 +116,8 @@
   </head>
   <body>
     <div id="file-boxes">
-      <form class="file-box">
-        <strong>WebSocket Connection</strong>
+      <form class="file-box connection-box">
+        <div class="box-title">WebSocket Connection</div>
 
         <input type="url" name="webrepl_url" id="url" value="" />
         <input
@@ -101,7 +128,7 @@
         />
       </form>
       <div class="file-box" id="put-file-list">
-        <strong>Send a file</strong>
+        <div class="box-title">Send a file</div>
         <input type="file" id="put-file-select" />
 
         <input
@@ -113,7 +140,7 @@
       </div>
 
       <div class="file-box">
-        <strong>Get a file</strong>
+        <div class="box-title">Get a file</div>
         <input
           type="text"
           name="get_filename"
@@ -128,7 +155,7 @@
         />
       </div>
       <div class="file-box">
-        <strong>File status</strong>
+        <div class="box-title">File status</div>
         <span id="file-status">(file operation status)</span>
       </div>
     </div>
@@ -149,13 +176,20 @@
 
     Edrys.onMessage((message) => {
       if (message.subject === execute && Edrys.role === 'station') {
-        console.log('execute', message.body)
+        //console.log('execute', message.body)
 
         let code = message.body.split('\n')
-
-        for (let i = 0; i < code.length; i++) {
-          window.term.emit('data', code[i] + '\r')
+        
+        // Send lines with delay to prevent truncation
+        let lineIndex = 0
+        function sendNextLine() {
+          if (lineIndex < code.length) {
+            window.term.emit('data', code[lineIndex] + '\r')
+            lineIndex++
+            setTimeout(sendNextLine, 50)
+          }
         }
+        sendNextLine()
       }
 
       if (message.from === Edrys.liveUser.name) {
@@ -188,7 +222,15 @@
 
     Edrys.onReady(() => {
       if (Edrys.role === 'student') {
-        urlInput.disabled = true
+        document.body.classList.add('student-view')
+        
+        // Force terminal resize for student view
+        setTimeout(() => {
+          if (window.term) {
+            var size = calculate_size(window)
+            window.term.resize(size[0], size[1])
+          }
+        }, 100)
       }
 
       if (Edrys.role !== 'station') {

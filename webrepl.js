@@ -9,14 +9,20 @@ var get_file_data = null
 
 function calculate_size(win) {
   const header = document.getElementById('file-boxes')
-
   const background = document.getElementById('term')
 
-  var cols = (window.innerWidth / 7) | 0
-  var rows = ((win.innerHeight - header.offsetHeight - 60) / 52) | 0
+  var cols = (window.innerWidth / 9) | 0
+  var rows
+
+  if (typeof Edrys !== 'undefined' && Edrys.role === 'student') {
+    rows = ((win.innerHeight - 120) / 17) | 0
+    background.style.height = (win.innerHeight - 120) + 'px'
+  } else {
+    rows = ((win.innerHeight - header.offsetHeight - 60) / 17) | 0
+    background.style.height = win.innerHeight - header.offsetHeight - 60 + 'px'
+  }
 
   background.style.width = '100%'
-  background.style.height = win.innerHeight - header.offsetHeight - 60 + 'px'
 
   return [cols, rows]
 }
@@ -36,6 +42,7 @@ function calculate_size(win) {
       useStyle: true,
       screenKeys: true,
       cursorBlink: false,
+      scrollback: 10000,
     })
     term.open(document.getElementById('term'))
     // show_https_warning()
