@@ -84,6 +84,7 @@ function button_click() {
 function prepare_for_connect() {
   document.getElementById('url').disabled = false
   document.getElementById('button').value = 'Connect'
+  document.getElementById('file-status').innerHTML = '(file operation status)'
 }
 
 function update_file_status(s) {
@@ -166,6 +167,7 @@ function connect(url) {
             } else {
               update_file_status('Failed sending ' + put_file_name)
             }
+            Edrys.sendMessage('inanimate_file_status', '')
             binary_state = 0
             break
 
@@ -199,6 +201,7 @@ function connect(url) {
                     get_file_data.length +
                     ' bytes'
                 )
+                Edrys.sendMessage('animate_file_status', '')
 
                 var rec = new Uint8Array(1)
                 rec[0] = 0
@@ -223,6 +226,7 @@ function connect(url) {
             } else {
               update_file_status('Failed getting ' + get_file_name)
             }
+            Edrys.sendMessage('inanimate_file_status', '')
             binary_state = 0
             break
           case 31:
@@ -294,6 +298,7 @@ function put_file() {
   // initiate put
   binary_state = 11
   update_file_status('Sending ' + put_file_name + '...')
+  Edrys.sendMessage('animate_file_status', '')
 
   ws.send(rec)
 }
@@ -338,6 +343,7 @@ function get_file(filename) {
   get_file_name = src_fname
   get_file_data = new Uint8Array(0)
   update_file_status('Getting ' + get_file_name + '...')
+  Edrys.sendMessage('animate_file_status', '')
 
   ws.send(rec)
 }
@@ -406,3 +412,13 @@ document
   .getElementById('put-file-select')
   .addEventListener('change', handle_put_file_select, false)
 document.getElementById('put-file-button').disabled = true
+
+
+Edrys.onMessage((message) => {
+  var fileStatus = document.getElementById('file-status')
+  if (message.subject === 'animate_file_status') {
+    fileStatus.classList.add('highlight')
+  } else if (message.subject === 'inanimate_file_status') {
+    fileStatus.classList.remove('highlight')
+  }
+})

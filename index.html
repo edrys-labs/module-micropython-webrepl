@@ -109,6 +109,17 @@
         border: 1px solid;
         overflow-y: auto;
       }
+
+      #file-status {
+        transition: all 0.3s ease;
+      }
+
+      #file-status.highlight {
+        background-color: #4caf5066;
+        padding: 4px 8px;
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+      }
     </style>
 
     <script src="term.js"></script>
@@ -158,6 +169,14 @@
         <div class="box-title">File status</div>
         <span id="file-status">(file operation status)</span>
       </div>
+      <div class="file-box">
+        <div class="box-title">Self Charge</div>
+        <input
+          type="button"
+          value="Run Self Charge"
+          onclick="runSelfCharge(); return false;"
+        />
+      </div>
     </div>
     <div id="term"></div>
     <div>
@@ -178,18 +197,29 @@
       if (message.subject === execute && Edrys.role === 'station') {
         //console.log('execute', message.body)
 
-        let code = message.body.split('\n')
+        // Upload code as temporary file and execute
+        let code = message.body
+        let filename = 'temp_code.py'
         
-        // Send lines with delay to prevent truncation
-        let lineIndex = 0
-        function sendNextLine() {
-          if (lineIndex < code.length) {
-            window.term.emit('data', code[lineIndex] + '\r')
-            lineIndex++
-            setTimeout(sendNextLine, 50)
-          }
-        }
-        sendNextLine()
+        // Convert string to binary data for file upload
+        let encoder = new TextEncoder()
+        let data = encoder.encode(code)
+        
+        // Upload the file first
+        mimic_put_file_select(filename, data)
+        
+        // Wait for upload to complete, then execute
+        setTimeout(() => {
+          window.term.emit('data', `exec(open('${filename}').read())\r`)
+          // Clean up temporary file
+          setTimeout(() => {
+            window.term.emit('data', `import os; os.remove('${filename}')\r`)
+          }, 1000)
+        }, 2000)
+      }
+
+      if (message.subject === 'run_self_charge' && Edrys.role === 'station') {
+        window.term.emit('data', `exec(open('self_charge.py').read())\r`)
       }
 
       if (message.from === Edrys.liveUser.name) {
@@ -335,6 +365,14 @@
 
       console.dir(Edrys.liveRoom)
     })
+
+    function runSelfCharge() {
+      if (Edrys.role === 'station') {
+        window.term.emit('data', `exec(open('self_charge.py').read())\r`)
+      } else {
+        Edrys.sendMessage('run_self_charge', '')
+      }
+    }
   </script>
   <script src="webrepl.js"></script>
 </html>
