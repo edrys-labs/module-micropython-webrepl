@@ -85,6 +85,7 @@ function prepare_for_connect() {
   document.getElementById('url').disabled = false
   document.getElementById('button').value = 'Connect'
   document.getElementById('file-status').innerHTML = '(file operation status)'
+  Edrys.sendMessage('inanimate_file_status', '')
 }
 
 function update_file_status(s) {

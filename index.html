@@ -21,6 +21,10 @@
             'type': string,
             'hint': 'Message to listen for (default: execute)',
           },
+          'self_charge_alvik': {
+            'type': boolean,
+            'hint': 'Run self charge script when all users leave the station',
+          }
         }
       }" 
     />
@@ -193,6 +197,8 @@
     const connectionButton = document.getElementById('button')
     var execute = 'execute'
 
+    let lastUsersCount = 0
+
     Edrys.onMessage((message) => {
       if (message.subject === execute && Edrys.role === 'station') {
         //console.log('execute', message.body)
@@ -344,6 +350,13 @@
         // Start observing the button for attribute changes
         observer2.observe(connectionButton, { attributes: true })
       })
+
+
+      if (Edrys.module?.stationConfig?.self_charge_alvik) {
+        checkUsersInStation();
+
+        setInterval(checkUsersInStation, 5000);
+      } 
     })
 
     Edrys.onUpdate(() => {
@@ -373,6 +386,40 @@
         Edrys.sendMessage('run_self_charge', '')
       }
     }
+
+    // When no users are in the station, run self charging script
+    function checkUsersInStation() {
+      if (Edrys.role !== 'station') {
+        return;
+      }
+
+      if (!Edrys.liveClass?.users) {
+        return;
+      }
+
+      const currentStationUsers = Object.values(Edrys.liveClass.users).filter(
+        (user) => {
+          return (
+            user && 
+            user.displayName && 
+            user.room &&
+            !user.displayName.startsWith("Station") &&
+            user.room.startsWith("Station")
+          );
+        }
+      );
+
+      const currentCount = currentStationUsers.length;
+
+      if (currentCount === 0 && lastUsersCount > 0) {
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+          console.log('No users in station, running self charge script');
+          runSelfCharge();
+        } 
+      }
+
+      lastUsersCount = currentCount;
+    };
   </script>
   <script src="webrepl.js"></script>
 </html>
