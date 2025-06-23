@@ -21,6 +21,15 @@ execute: topic
 
 However, in most cases your MicroPython board will **NOT** be able to offer a secure wss connection, that is why you either need to install a browser-plugin at the Station-Browser. Or your run, the included [`proxy.py`](./proxy.py) script on a local machine, which will forward the WebSocket connection to the MicroPython board.
 
+You can run the proxy either manually:
+``` bash
+python3 proxy.py
+```
+Or by running the following Docker container:
+``` bash
+docker run -it --network host edryslabs/micropython-webrepl-proxy:latest
+```
+
 The proxy will by default listen for incoming connections at `ws://localhost:8765` by adding a path with your MicroPython websocket connection, all incoming requests will be forwarded to this connection.
 
 ``` html
