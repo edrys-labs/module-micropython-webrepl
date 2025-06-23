@@ -27,7 +27,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./Docker
+          context: .
           file: ./Docker/Dockerfile
           push: true
           tags: edryslabs/micropython-webrepl-proxy:latest
